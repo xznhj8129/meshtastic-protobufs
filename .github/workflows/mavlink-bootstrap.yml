@@ -60,12 +60,12 @@ jobs:
           buf lint
           buf generate
 
-      - name: Commit canonical schema and generated TypeScript
+      - name: Commit canonical schema
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git rm .github/workflows/mavlink-bootstrap.yml
-          git add meshtastic/module_config.proto packages/ts/lib
+          git add meshtastic/module_config.proto
           git commit -m "Add MAVLink serial mode and peer configuration"
           git push origin HEAD:mavlink
