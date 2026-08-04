@@ -1,0 +1,66 @@
+name: Bootstrap MAVLink protobuf schema
+
+on:
+  push:
+    branches:
+      - mavlink
+    paths:
+      - .github/workflows/mavlink-bootstrap.yml
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out mavlink branch
+        uses: actions/checkout@v4
+        with:
+          ref: mavlink
+          fetch-depth: 0
+
+      - name: Install Buf
+        uses: bufbuild/buf-setup-action@v1
+
+      - name: Add MAVLink serial schema
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("meshtastic/module_config.proto")
+          text = path.read_text()
+
+          enum_old = "      LOGTEXT = 10; // only text (channel & DM)\n"
+          enum_new = enum_old + "      // Transparent low-throughput MAVLink byte-stream bridge over SERIAL_APP.\n      MAVLINK = 11;\n"
+          if enum_old not in text:
+              raise SystemExit("Serial_Mode insertion point not found")
+          if "MAVLINK = 11;" not in text:
+              text = text.replace(enum_old, enum_new, 1)
+
+          field_old = "    bool override_console_serial_port = 8;\n"
+          field_new = field_old + "\n    /*\n     * Meshtastic node number used as the fixed bridge peer in MAVLINK mode.\n     * A value of 0 keeps discovery behavior: the first remote node to send a\n     * non-empty MAVLink chunk is locked as the peer until reboot.\n     */\n    uint32 peer_node = 9;\n"
+          if field_old not in text:
+              raise SystemExit("SerialConfig field insertion point not found")
+          if "uint32 peer_node = 9;" not in text:
+              text = text.replace(field_old, field_new, 1)
+
+          path.write_text(text)
+          PY
+
+      - name: Format and validate schema
+        run: |
+          buf format -w meshtastic/module_config.proto
+          buf lint
+          buf generate
+
+      - name: Commit canonical schema and generated TypeScript
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/mavlink-bootstrap.yml
+          git add meshtastic/module_config.proto packages/ts/lib
+          git commit -m "Add MAVLink serial mode and peer configuration"
+          git push origin HEAD:mavlink
