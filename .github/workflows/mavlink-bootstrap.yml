@@ -6,6 +6,11 @@ on:
       - mavlink
     paths:
       - .github/workflows/mavlink-bootstrap.yml
+  pull_request:
+    branches:
+      - master
+    paths:
+      - .github/workflows/mavlink-bootstrap.yml
 
 permissions:
   contents: write
