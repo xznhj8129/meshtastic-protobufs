@@ -393,6 +393,8 @@ message ModuleConfig {
       // Logs mesh traffic to the serial pins, ideal for logging via openLog or similar.
       LOG = 9; // includes other packets
       LOGTEXT = 10; // only text (channel & DM)
+      // Transparent low-throughput MAVLink byte-stream bridge over SERIAL_APP.
+      MAVLINK = 11;
     }
 
     /*
@@ -436,6 +438,13 @@ message ModuleConfig {
      * Existing logging over the Serial Console will still be present
      */
     bool override_console_serial_port = 8;
+
+    /*
+     * Meshtastic node number used as the fixed bridge peer in MAVLINK mode.
+     * A value of 0 keeps discovery behavior: the first remote node to send a
+     * non-empty MAVLink chunk is locked as the peer until reboot.
+     */
+    uint32 peer_node = 9;
   }
 
   /*
